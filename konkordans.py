@@ -22,13 +22,22 @@ def lazy_hash(word):
         index += v * m 
     return index
 
+# TODO skapa och spara pekare från hash till ordlista
+# TODO spara index för varje ord
+# TODO sortera indexen i första filen
+# TODO skriv konkordansen till fil.
 def create_konkordans(filename):
+    words = set()
     with open(KORPUS_PATH, 'r', encoding="ISO-8859-1") as korpus:
-        word_list = set()
         for line in korpus.readlines():
             for word in line.split():
-                word_list.add(word)
-#    open(filename, 'w')
+                # save index of word
+                words.add(word)
+    hashes = dict()
+    for word in words:
+        hashes.setdefault(lazy_hash(word), list()).append(word) # should be an ordered set
+    hash_list = {lazy_hash(word) for word in word_list}
+    return hash_list
 
 def parse_konkordans(filename):
     pass
@@ -40,7 +49,6 @@ if __name__ == "__main__":
     if not os.path.isfile(KONKORDANS_FILENAME):
         create_konkordans(KONKORDANS_FILENAME)
 
-    open(KONKORDANS_FILENAME, 'rb')
     
 
 
