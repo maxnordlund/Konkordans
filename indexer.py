@@ -1,37 +1,30 @@
 #!/usr/bin/env python3
 
-from collections import OrderedDict
+import sys
+import os
 
-# Läs en byte med högst en inläsning från disk
-read = lambda f: f.read(1).decode(encoding="ISO-8859-1").lower() 
-peek = lambda f: f.peek(1).decode(encoding="ISO-8859-1").lower() 
+KORPUS = "/info/adk12/labb1/korpus"
+KONKORDANS = "index.txt"
 
-words = {}
+def create_konkordans(filename):
+    words = set()
+    
+    with open(KORPUS, encoding="ISO-8859-1") as korpus:
+        for line in korpus:
+            for word in line.split():
+                words.add(word.strip("!\"%&'()*+,-./0123456789:;=?_€§©®·[]$<>@`").lower())
+        
+        print("No. unique words: ", len(words))
+        with open(filename, encoding="UTF-8", mode="wt") as index:
+            for word in sorted(words):
+                
+                index.write(word + "\n")
 
-# Öppna rwb för att kunna fråga om var man är.
-strip_characters = "!\"%&'()*+,-./0123456789:;=?_€§©®·[]$<>@`"
-
-with open("korpus", mode="r+b") as f:
-    c = read(f)
-    s = bytearray()
-    begining = f.tell()
-    while f.readable():
-        p = peek(f)
-        if c.isalnum() or not p.isspace():
-            s.extend(c.encode(encoding="ISO-8859-1"))
-        if p.isspace():
-            s = s.decode(encoding="ISO-8859-1")
-            if s not in words:
-                words[s] = [begining]
-            else:
-                words[s].append(begining)
-            s = bytearray()
-            begining = f.seek(1, SEEK_CUR)
-        c = p
-
-words = OrderedDict(sorted(d.items(), key=lambda t: t[0]))
-
-with open("ut", encoding="UTF-8", mode="wt") as f:
-    for t in words.items():
-        f.write(t[0] + " " + t[1] + "\n")
-
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "-b":
+            create_konkordans(KONKORDANS)
+    else:
+        # Behöver vi skapa konkordansen?
+        if not os.path.isfile(KONKORDANS):
+            create_konkordans(KONKORDANS)
