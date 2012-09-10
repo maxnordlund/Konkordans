@@ -38,14 +38,22 @@ def create_konkordans(filename):
             for word in line.split():
                 # save index of word
                 words.add(word.strip(strip_characters))
+
+                # DEBUG
                 i += 1
                 if not i % 1000:
                     print("Parsed {} words".format(i))
+                # /DEBUG
+
     hashes = dict()
     for word in words:
         hashes.setdefault(lazy_hash(word), list()).append(word) # should be an ordered set
-    for i, k in zip(range(10), hashes.keys()): #deb
-        print([k,hashes[k]])
+
+    # DEBUG
+    print("Debugging some keys and values from the dictionary:")
+    for i, k in zip(range(10), hashes.keys()): 
+        print([k,hashes[k]]) 
+    # /DEBUG
     
     with open(filename, 'wb') as f:
         pickle.dump(hashes, f)
