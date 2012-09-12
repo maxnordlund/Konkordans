@@ -9,14 +9,22 @@ STRIPPER   = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
 KONKORDANS = "index.txt"
 
 
+## Potential bug! The hashing doesn't account for special characters
+## such as ':/.-' in the middle of the word. As of now, we just ignore
+## these.
 def lazy_hash(word, length):
     hash = 0
-    for character, i in enumerate(word[0:length]):
+    for i, character in enumerate(word[0:length]):
         val = ord(character) - 96 # ord('a') = 97
-        if val > 26:
-            if char == 'å': val = 27
-            if char == 'ä': val = 28
-            if char == 'ö': val = 29
+        if val < 0: continue
+        elif val > 26:
+            # if character == 'å': val = 27
+            # else if character == 'ä': val = 28
+            # else if character == 'ö': val = 29
+            if   val == 133: val = 27
+            elif val == 132: val = 28
+            elif val == 150: val = 29
+            else: continue
         hash += val*30**i
     return hash
 
@@ -42,9 +50,10 @@ def create_konkordans(filename):
     words = OrderedDict(sorted(words.items(), key=lambda t: t[0]))
 
     with open(filename, encoding="UTF-8", mode="wt") as f:
-        for t in words.items():
-            #f.write(t[0] + " " + str(t[1]) + "\n")
-            f.write(str(len(t[1])) + " " + t[0] + "\n")
+        for k,v in words.items():
+            f.write(str(lazy_hash(k,3)) + " " + str(k[4:]))
+            f.write(k + " " + str(v) + "\n")
+            #f.write(str(len(t[1])) + " " + t[0] + "\n")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
