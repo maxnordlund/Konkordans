@@ -8,6 +8,19 @@ KORPUS     = "/info/adk12/labb1/korpus"
 STRIPPER   = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
 KONKORDANS = "index.txt"
 
+def find_word(word, konkordans):
+    word = word.lower()
+    hash = lazy_hash(word, 3)
+    print("Hashade '"+word+"' som "+str(hash)+".")
+    number_found = []
+    with open(konkordans) as f:
+        for line in f:
+            if word in line.lower():
+                number_found.append( line.split()[0] )
+    print("Hittade %d matchande termer:" % len(number_found))
+    result = ", ".join(number_found)
+    return result
+
 
 ## Potential bug! The hashing doesn't account for special characters
 ## such as ':/.-' in the middle of the word. As of now, we just ignore
@@ -42,8 +55,6 @@ def create_konkordans(filename):
                         words[stripped] = [i]
                     else:
                         words[stripped].append(i)
-                    #l = words.setdefault(stripped, list())
-                    #l.append(i)
                     i += len(word)
             i += len(line)
     
@@ -51,7 +62,7 @@ def create_konkordans(filename):
 
     with open(filename, encoding="UTF-8", mode="wt") as f:
         for k,v in words.items():
-            f.write(str(lazy_hash(k,3)) + " " + str(k[4:]))
+            #f.write(str(lazy_hash(k,3)) + " " + str(k[4:]))
             f.write(k + " " + str(v) + "\n")
             #f.write(str(len(t[1])) + " " + t[0] + "\n")
 
@@ -59,6 +70,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "-b":
             create_konkordans(KONKORDANS)
+        else:
+            result = find_word(sys.argv[1], KONKORDANS)
+            print(result)
     else:
         # Behöver vi skapa konkordansen?
         if not os.path.isfile(KONKORDANS):
