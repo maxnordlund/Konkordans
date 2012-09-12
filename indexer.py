@@ -8,6 +8,18 @@ KORPUS     = "/info/adk12/labb1/korpus"
 STRIPPER   = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
 KONKORDANS = "index.txt"
 
+
+def lazy_hash(word, length):
+    hash = 0
+    for character, i in enumerate(word[0:length]):
+        val = ord(character) - 96 # ord('a') = 97
+        if val > 26:
+            if char == 'å': val = 27
+            if char == 'ä': val = 28
+            if char == 'ö': val = 29
+        hash += val*30**i
+    return hash
+
 def create_konkordans(filename):
     words = {}
     
