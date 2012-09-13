@@ -8,7 +8,7 @@ class Korpus:
         self._path = path
     
     def __enter__(self):
-        self._fil = open(self._path, encoding=ISO).__enter__() # Options?
+        self._fil = open(path, encoding=ISO).__enter__() # Options?
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):

@@ -20,20 +20,20 @@ class Index:
         return self._fil.__exit__(exc_type, exc_val, exc_tb)
     
     def create(self):
-        index   = self._korpus.tell()
+        i       = self._korpus.tell()
         words   = {}
         max_len = 0
         for line in self._korpus:
             for word in line.split(" "):
-                index += 1
+                i += 1
                 stripped = word.strip(STRIPPER).lower()
                 if stripped != "":
                     if stripped not in words:
-                        words[stripped] = [index]
+                        words[stripped] = [i]
                     else:
                         words[stripped].append(i)
-                    index += len(word)
-            index += len(line)
+                    i += len(word)
+            i += len(line)
         
         self._links = Links()
         
