@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from collections import OrderedDict
 import sys
 import os
 
@@ -57,13 +56,11 @@ def create_konkordans(filename):
                         words[stripped].append(i)
                     i += len(word)
             i += len(line)
-    
-    words = OrderedDict(sorted(words.items(), key=lambda t: t[0]))
 
     with open(filename, encoding="UTF-8", mode="wt") as f:
-        for k,v in words.items():
+        for word in sorted(words):
             #f.write(str(lazy_hash(k,3)) + " " + str(k[4:]))
-            f.write(k + " " + str(v) + "\n")
+            f.write(word + "\n")
             #f.write(str(len(t[1])) + " " + t[0] + "\n")
 
 if __name__ == "__main__":
