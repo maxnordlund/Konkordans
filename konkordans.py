@@ -1,24 +1,41 @@
 #!/usr/bin/env python3
 
-import sys
-import os
+import sys, os
+
+KORPUS_PATH = "/info/adk12/labb1/korpus"
+
+help_text = """Användning: 
+"konkordans.py -h | --help" för att få denna hjälptext.
+"konkordans.py -b | --build [filnamn]" för att bygga ett nytt databasindex och avsluta programmet. Byt filnamn till det du vill kalla indexet, eller kör utan för att låta det heta "index.dat".
+"konkordans.pu <sökterm>" för att få en konkordans för söktermen."""
+
+kommande_help_text = """Kör programmet utan argument för att starta en interaktiv session. Programmet kommer skapa """
+
+INDEX_FILENAME = "index.dat"
+
+def search():
+    with Korpus(KORPUS_PATH) as korpus:
+        with Index(korpus) as index:
+            if not os.path.isfile(INDEX_FILENAME):
+                print("Hittade inget index, bygger det nu.")
+                index.build()
+
+            limit = 10
+            off = 30
+            for i in index[search][:limit]:
+                print(korpus[off:i:off])
 
 if __name__ == "__main__":
-    with Korpus(fil) as korpus:
-        with Index(korpus) as i:
-            if build:
-                i.create()
-            for i in Index[search][:limit]:
-                korpus[off:i:off]
-
     if len(sys.argv) > 1:
-        if sys.argv[1] == "-b":
-            create_konkordans(KONKORDANS)
+        if sys.argv[1] in ["-b", "--build"]:
+            print("Bygger index på " + INDEX_FILENAME + "...")
+            with Korpus(KORPUS_PATH) as korpus:
+                with Index(korpus) as index:
+                    index.build()
+            print("Index färdigbyggt.")
+        elif sys.argv[1] in ["-h", "--help"]:
+            print(help_text)
         else:
-            result = find_word(sys.argv[1], KONKORDANS)
-            print(result)
+            search( sys.argv[1] )
     else:
-        # Behöver vi skapa konkordansen?
-        if not os.path.isfile(KONKORDANS):
-            create_konkordans(KONKORDANS)
-
+        print("Den interaktiva session med sökning är inte färdig än.")
