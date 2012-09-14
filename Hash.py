@@ -20,11 +20,6 @@ def lazy_hash(word):
 
 class Hash:
     """En klass som pratar med latmanshashindexfilen. Använder pickle för att spara och ladda informationen från fil."""
-    def __init__(self, path):
-        self._hashes = None
-        with open(path, 'wb') as f:
-            self._hashes = pickle.load(f)
-        
     def __init__(self, path, word_indices=None):
         self._hashes = None
 

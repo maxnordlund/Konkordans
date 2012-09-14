@@ -5,28 +5,28 @@ import struct
 class Links:
     """En klass som pratar med filen med alla ords offseter"""
     def __init__(self, f):
-        self._file = f
+        self._links = f
 
     def build(self, words):
-        range_mapping = []
+        links = []
 
-        self._file.seek(0)
+        self._links.seek(0)
         for word in sorted(words):
             indices = words[word]
             format_string = str(len(indices)) + "I"
 
-            start = self._file.tell()
-            range_mapping.append( (word, start, len(indices)) )
+            start = self._links.tell()
+            links.append( (word, start, len(indices)) )
 
             chunk = struct.pack(format_string, *indices)
 
-            self._file.write(chunk)
+            self._links.write(chunk)
 
-        return range_mapping
+        return links
 
     def get(self, offset, length):
-        self._file.seek(offset, 0) # find the index position
-        data = self._file.read(length*4)
+        self._links.seek(offset, 0) # find the index position
+        data = self._links.read(length*4)
         format_string = str(length) + "I"
         return struct.unpack(format_string, data)
 
