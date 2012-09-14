@@ -38,8 +38,6 @@ class Index:
         while line != []:
             for word in line[0].split(b' '):
                 word = word.decode(ENCODING).strip(STRIPPER).lower()
-                if word=="australien":
-                    aus = index
                 if word == "": # Don't add strange empty words
                     continue
                 elif word not in words:
@@ -135,32 +133,3 @@ class Index:
         with open(self._link_path,  mode="rb") as f:
             self._links = Links.Links(f)
             return self._links.get(offset, length)
-
-
-def sparad():
-        words   = {}
-        word_len = 0
-        lines = self._korpus._fil.readline()
-        index_a = 0
-        for line in self._korpus._fil:
-            index = index_a
-            index_a += len(line)
-            for word in line.split(b" "):
-                index += 1
-                index += len(word)
-                stripped = word.decode(ENCODING).strip(STRIPPER).lower()
-                
-                if stripped == "australien":
-                    print(index, line[index-index_a:index-index_a+20])
-
-                if stripped == "": # Don't add strange empty words
-                    continue
-
-                if stripped not in words:
-                    words[stripped] = [index]
-                else:
-                    words[stripped].append(index)
-                word_len = max(word_len, len(word))
-            index += len(line)
-            line = self._korpus._fil.readline(1)
-        
