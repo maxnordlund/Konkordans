@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import sys, os
+from Korpus import Korpus
+from Index import Index
 
 KORPUS_PATH = "/info/adk12/labb1/korpus"
 
@@ -13,7 +15,7 @@ kommande_help_text = """Kör programmet utan argument för att starta en interak
 
 INDEX_FILENAME = "index.dat"
 
-def search():
+def search(word):
     with Korpus(KORPUS_PATH) as korpus:
         with Index(korpus) as index:
             if not os.path.isfile(INDEX_FILENAME):
@@ -22,8 +24,10 @@ def search():
 
             limit = 10
             off = 30
-            for i in index[search][:limit]:
-                print(korpus[off:i:off])
+            for i in index[word][:limit]:
+                line = korpus[i-off:i+off+len(word)]
+                line = line.decode("ISO-8859-1").replace('\n','||')
+                print(line, end="\n---\n")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -39,3 +43,4 @@ if __name__ == "__main__":
             search( sys.argv[1] )
     else:
         print("Den interaktiva session med sökning är inte färdig än.")
+

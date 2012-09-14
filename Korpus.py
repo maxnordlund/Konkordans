@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
-ISO = "ISO-8859-1"
+import os
+ENCODING = "ISO-8859-1"
 
 class Korpus:
     """En klass som pratar med korpusen"""
     def __init__(self, path):
         self._path = path
+        self._len = None
     
     def __enter__(self):
-        self._fil = open(self._path, encoding=ISO).__enter__() # Options?
+        self._fil = open(self._path, "rb").__enter__() # Options?
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -22,14 +24,14 @@ class Korpus:
     
     def __len__(self):
         if self._len == None:
-            self._len = self._fil.seek(0, SEEK_END)
+            self._len = self._fil.seek(0, os.SEEK_END)
         return self._len
     
     def __getitem__(self, key):
         string = ""
-        if key is slice:
+        if type(key) is slice:
             if key.stop == None:
-                self._fil.seek(key.start, SEEK_SET)
+                self._fil.seek(key.start, os.SEEK_SET)
                 string = self._fil.readline()
             else:
                 start = 0
@@ -43,10 +45,10 @@ class Korpus:
                 else:
                     start = key.start
                     stop  = key.stop
-                
-                self._fil.seek(start, SEEK_SET)
-                string = self._fil.read(stop)
+                 
+                self._fil.seek(start, os.SEEK_SET)
+                string = self._fil.read(stop-start)
         else:
-            self._fil.seek(key, SEEK_SET)
+            self._fil.seek(key, os.SEEK_SET)
             string = self._fil.readline().split()[0]
         return string

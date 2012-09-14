@@ -11,10 +11,10 @@ mappings[ord('ö')] = 29
 
 def lazy_hash(word):
     """Hashes the first three letters of the word. """
-    word = word.ljust(3)
-    value  = mapping[ord(word[0])] * 900
-    value += mapping[ord(word[1])] * 30
-    value += mapping[ord(word[2])]
+    word = word.rjust(3)
+    value  = mappings[ord(word[0])] * 900
+    value += mappings[ord(word[1])] * 30
+    value += mappings[ord(word[2])]
     return value
     
 
@@ -25,7 +25,17 @@ class Hash:
         with open(path, 'wb') as f:
             self._hashes = pickle.load(f)
         
-    def __init__(self, path, word_indices):
+    def __init__(self, path, word_indices=None):
+        self._hashes = None
+
+        if word_indices is None:
+            with open(path, 'rb') as f:
+                self._hashes = pickle.load(f)
+        else:
+            self.build(path, word_indices)
+
+    def build(self, path, word_indices):
+        """Constructs the Hash index from a list of words and offsets and saves it to file."""
         used_hashes = set()
         self._hashes = [0] * 27000 # prepopulate
 
@@ -34,14 +44,12 @@ class Hash:
             h = lazy_hash(word)
             if h not in used_hashes:
                 used_hashes.add(h)
-            self._hashes.append(h, pos))
-
+                self._hashes[h] = pos
         # let's save the index of the last word as well
-        last_hash = self._hashes[-1][0] + 1 
-        self._hashes.append( (last_hash, word_indices[-1][1] )
+        self._hashes.append( word_indices[-1][1] )
 
         # save our progress to file
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             pickle.dump(self._hashes, f)
 
     def __getitem__(self, key):
@@ -49,7 +57,7 @@ class Hash:
         h = lazy_hash(key)
         index_l = self._hashes[h]
         if index_l == 0:
-            raise Exception("No index for word: " + key)
+            raise Exception("No index for hash('{}')={}".format(key, h))
 
         # Continue searching for the next term (guaranteed to exist)
         for index_h in self._hashes[h+1:]:
