@@ -11,8 +11,7 @@ class Links:
         links = []
 
         self._links.seek(0)
-        for word in sorted(words):
-            indices = words[word]
+        for _, word, indices in words:
             format_string = str(len(indices)) + "I"
 
             start = self._links.tell()
@@ -26,8 +25,9 @@ class Links:
 
     def get(self, offset, length):
         self._links.seek(offset, 0) # find the index position
-        data = self._links.read(length*4)
         format_string = str(length) + "I"
-        return struct.unpack(format_string, data)
+        data = self._links.read(length*4)
+        values = struct.unpack(format_string, data)
+        return list(values)
 
 

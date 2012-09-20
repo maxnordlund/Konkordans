@@ -23,11 +23,12 @@ def search(word):
                 index.build()
 
             limit = 10
-            off = 30
-            for i in index[word][:limit]:
-                line = korpus[i-off:i+off+len(word)]
-                line = line.decode("ISO-8859-1").replace('\n','||')
-                print(line, end="\n---\n")
+            off = 30 + len(word)
+            indices = index[word.strip().lower()]
+            for i in indices[:limit]:
+                line = korpus[off:i:off]
+                line = line.decode("ISO-8859-1").replace('\n',' ')
+                print(line, end="\n")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

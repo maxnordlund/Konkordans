@@ -19,7 +19,8 @@ def lazy_hash(word):
     
 
 class Hash:
-    """En klass som pratar med latmanshashindexfilen. Använder pickle för att spara och ladda informationen från fil."""
+    """En klass som pratar med latmanshashindexfilen.
+Använder pickle för att spara och ladda informationen från fil."""
     def __init__(self, path, word_indices=None):
         self._hashes = None
 
@@ -36,7 +37,7 @@ class Hash:
 
         # set all existant hashes to their word indices
         for word, pos in word_indices:
-            h = lazy_hash(word)
+            h = lazy_hash(word.strip())
             if h not in used_hashes:
                 used_hashes.add(h)
                 self._hashes[h] = pos
@@ -57,5 +58,8 @@ class Hash:
         # Continue searching for the next term (guaranteed to exist)
         for index_h in self._hashes[h+1:]:
             if index_h != 0:
-                return index_l, index_h
+                if index_l < index_h:
+                    return index_l, index_h
+                else:
+                    return index_h, index_l
 

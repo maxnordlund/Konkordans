@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import struct
-import Links
-import Hash
+import Links, Hash
+from os import SEEK_SET
 
 ENCODING = "ISO-8859-1" # Every character is 1 byte
-STRIPPER   = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
+STRIPPER = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
 
 class Index:
     """En klass som pratar med indexfilen"""
@@ -29,52 +29,32 @@ class Index:
             return self._index.__exit__(exc_type, exc_val, exc_tb)
     
     def parse_korpus(self, filename):
-        f = open(filename, "rb")
-
-        index = 0
-        line = f.readlines(1)
-        words   = {}
-        word_len = 0
-        while line != []:
-            for word in line[0].split(b' '):
-                word = word.decode(ENCODING).strip(STRIPPER).lower()
-                if word == "": # Don't add strange empty words
-                    continue
-                elif word not in words:
-                    words[word] = [index]
-                    word_len = max(word_len, len(word))
-                else:
-                    words[word].append(index)
-                index += len(word) + 1
-
-            index = f.tell()
+        """Returns a list of (hash, string, indices)-tuples."""
+        with open(filename, "rb") as f:
+            words   = {}
+            index = 0
+            longest_word = 0
             line = f.readlines(1)
-
-        f.close()
-
-        return words, word_len
-
-    def write(self, filename, words, word_len):
-        # Build the main Index file
-        self._index = open(filename, mode="wb")
-
-        format_string = str(word_len) + "sII"
-        self.chunk_size = struct.calcsize(format_string)
-        chunk = struct.pack("I", word_len)
-        self._index.seek(0)
-        self._index.write(chunk)
-
-        word_indices = [] # To be added to the Hash index
-        for word, start, length in sorted(words):
-            word_indices.append( (word, self._index.tell()) )
+            while line != []:
+                for word in line[0].split(b' '):
+                    index += len(word) + 1
+                    word = word.decode(ENCODING).strip(STRIPPER).lower()
+                    if word == "": # Don't add strange empty words
+                        continue
+                    elif word not in words:
+                        words[word] = [index]
+                        longest_word = max(longest_word, len(word))
+                    else:
+                        words[word].append(index)
+                index = f.tell()
+                line = f.readlines(1)
             
-            # pack the data as bytes
-            wordbytes = bytes(word.ljust(word_len), encoding=ENCODING)
-            chunk = struct.pack(format_string, wordbytes, start, length)
+            lazy = Hash.lazy_hash
+            word_list = [(lazy(w), w, words[w]) for w in words]
+            word_list = sorted(word_list, key=lambda t: t[1])
+            word_list = sorted(word_list, key=lambda t: t[0])
 
-            self._index.write(chunk)
-        self._index.close()
-        return word_indices
+            return word_list, longest_word
 
     def build(self):
         # Reading all words from our korpus
@@ -83,53 +63,86 @@ class Index:
 
         self.word_len = word_len
 
+
         # Build the word Links index file
-        links_words = [] # from Links: (word, offset, size)
+        links_words = [] 
         with open(self._link_path,  mode="wb") as f:
             self._links = Links.Links(f)
-            links_words = self._links.build(words) 
+            links_words = self._links.build(words) # from Links: (word, offset, size)
 
         # Build the main Index file
         word_indices = self.write(self._index_path, links_words, self.word_len)
 
         # Build the Hash index file
         self._hash = Hash.Hash("hash.dat", word_indices) 
+
+    def write(self, filename, words, word_len):
+
+        # Build the main Index file
+        word_indices = [] # To be added to the Hash index
+        self.format_string = str(word_len) + "sII"
+        self.chunk_size = struct.calcsize(self.format_string)
+
+        with open(filename, mode="wb") as f:
+            # header
+            f.seek(0)
+            f.write(struct.pack("I", word_len)) 
+
+            for word, start, length in words:
+                word_indices.append( (word, f.tell()) )
+                
+                # pack the data as bytes
+                wordbytes = bytes(word.rjust(word_len), encoding=ENCODING)
+                chunk = struct.pack(self.format_string, wordbytes, start, length)
+
+                f.write(chunk)
+        #self._index.close()
+        return word_indices
+
     
     def __getitem__(self, key):
         if type(key) is not str:
             raise TypeError
 
-        if not self._hash:
-            self._hash = Hash.Hash("hash.dat") 
-        format_string=""
-        if self.chunk_size == 0:
-            self._index = open(self._index_path, mode="rb")
-            data = self._index.read(4)
-            self.word_len = struct.unpack("I", data)[0] 
-            format_string = str(self.word_len) + "sII"
-            self.chunk_size = struct.calcsize(format_string)
+        with open(self._index_path, mode="rb") as self._index:
+            # read header
+            self.word_len = struct.unpack("I", self.index.read(4))[0]
+            self.format_string = str(self.word_len) + "sII"
+            self.chunk_size = struct.calcsize(self.format_string)
+            self._index
 
-        low, high = self._hash[key]
-        i = 0
+            # Get word list boundaries
+            low, high = Hash.Hash("hash.dat")[key]
+            # Get the offset and length of the index list
+            offset, length = self.binary_search(key, low, high)
+
+        with open(self._link_path,  mode="rb") as f:
+            return Links.Links(f).get(offset, length)
+
+    def binary_search(self, key, low, high):
+        self.format_string = str(self.word_len) + "sII"
+        i = 0       # Sentinel against infinite loops
+        mid = low   # Sentinel in case low == high
         while low < high and i < 12:
             i += 1
             mid = int((high + low)/2)
             mid = mid - (mid % self.chunk_size)
-            self._index.seek(mid+4, 0)
+
+            # read chunk
+            self._index.seek(mid+4, SEEK_SET) # +4 from header size
             data = self._index.read(self.chunk_size)
-            values = struct.unpack(format_string, data)
-            word = values[0].decode(ENCODING).strip()
+            word, offset, length = struct.unpack(self.format_string, data)
+            word = word.decode(ENCODING).strip()
+
             if word < key:
-                low  = mid + self.chunk_size
+                low = mid
+                #low  = mid + self.chunk_size
             elif word > key:
-                high = mid - self.chunk_size
+                high = mid
+                #high = mid - self.chunk_size
             else:
                 break # Found it!
 
-        self._index.seek(mid+4, 0)
-        data = self._index.read(self.chunk_size)
-        word, offset, length = struct.unpack(format_string, data)
-            
-        with open(self._link_path,  mode="rb") as f:
-            self._links = Links.Links(f)
-            return self._links.get(offset, length)
+        return offset, length
+
+        
