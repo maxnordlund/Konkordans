@@ -25,6 +25,7 @@ def search(word):
             limit = 10
             off = 30 + len(word)
             indices = index[word.strip().lower()]
+            print("Antal resultat: ", len(indices))
             for i in indices[:limit]:
                 line = korpus[off:i:off]
                 line = line.decode("ISO-8859-1").replace('\n',' ')

@@ -36,9 +36,12 @@ class Index:
             longest_word = 0
             line = f.readlines(1)
             while line != []:
-                for word in line[0].split(b' '):
+                line = line[0].decode(ENCODING).lower()
+                for c in line:
+                    if c not in "abcdefghijklmnopqrstuvwxyzåäö ":
+                        line = line.replace(c, " ")
+                for word in line.split(" "):
                     index += len(word) + 1
-                    word = word.decode(ENCODING).strip(STRIPPER).lower()
                     if word == "": # Don't add strange empty words
                         continue
                     elif word not in words:
@@ -106,7 +109,7 @@ class Index:
 
         with open(self._index_path, mode="rb") as self._index:
             # read header
-            self.word_len = struct.unpack("I", self.index.read(4))[0]
+            self.word_len = struct.unpack("I", self._index.read(4))[0]
             self.format_string = str(self.word_len) + "sII"
             self.chunk_size = struct.calcsize(self.format_string)
             self._index
