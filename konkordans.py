@@ -6,43 +6,53 @@ from Index import Index
 
 KORPUS_PATH = "/info/adk12/labb1/korpus"
 
-help_text = """Användning: 
+USAGE = """Användning: 
 "konkordans.py -h | --help" för att få denna hjälptext.
 "konkordans.py -b | --build [filnamn]" för att bygga ett nytt databasindex och avsluta programmet. Byt filnamn till det du vill kalla indexet, eller kör utan för att låta det heta "index.dat".
-"konkordans.pu <sökterm>" för att få en konkordans för söktermen."""
-
-kommande_help_text = """Kör programmet utan argument för att starta en interaktiv session. Programmet kommer skapa """
+"konkordans.py [-n <antal resultat=25>] <sökterm>" för att få en konkordans för söktermen."""
 
 INDEX_FILENAME = "index.dat"
 
-def search(word):
-    with Korpus(KORPUS_PATH) as korpus:
-        with Index(korpus) as index:
-            if not os.path.isfile(INDEX_FILENAME):
-                print("Hittade inget index, bygger det nu.")
-                index.build()
+def search(word, max_results):
+    try:
+        with Korpus(KORPUS_PATH) as korpus:
+            with Index(korpus) as index:
+                if not os.path.isfile(INDEX_FILENAME):
+                    print("Hittade inget index, bygger det nu.")
+                    index.build()
 
-            limit = 10
-            off = 30 + len(word)
-            indices = index[word.strip().lower()]
-            print("Antal resultat: ", len(indices))
-            for i in indices[:limit]:
-                line = korpus[off:i:off]
-                line = line.decode("ISO-8859-1").replace('\n',' ')
-                print(line, end="\n")
+                off = 30 + len(word)
+                indices = index[word.strip().lower()]
+                print("Visar %d/%d resultat." % (max_results, len(indices)))
+                for i in indices[:max_results]:
+                    line = korpus[off:i:off]
+                    line = line.decode("ISO-8859-1").replace('\n',' ')
+                    print(line, end="\n")
+    except Exception as e:
+        print("\nNågonting gick snett!")
+        print(e)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        if sys.argv[1] in ["-b", "--build"]:
+        term1 = sys.argv[1]
+        if term1 in ["-b", "--build"]:
             print("Bygger index på " + INDEX_FILENAME + "...")
             with Korpus(KORPUS_PATH) as korpus:
                 with Index(korpus) as index:
                     index.build()
             print("Index färdigbyggt.")
-        elif sys.argv[1] in ["-h", "--help"]:
-            print(help_text)
+        elif term1 in ["-h", "--help"]:
+            print(USAGE)
+        elif term1 in ["-n"]:
+            try:
+                n, t = sys.argv[2:]
+                search(str(t), int(n))
+            except Exception as e:
+                print("\nFel användning: ", e)
+                print(USAGE)
         else:
-            search( sys.argv[1] )
+            search( term1, 25 ) # return a list of max 25 results
     else:
-        print("Den interaktiva session med sökning är inte färdig än.")
+        print("Den interaktiva sessionen med sökning är inte färdig än. "+\
+              "Vänligen sök efter ett ord.")
 
