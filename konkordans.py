@@ -13,6 +13,20 @@ USAGE = """Användning:
 
 INDEX_FILENAME = "index.dat"
 
+def search_index(korpus, index, word, max_results=25):
+    try:
+        off = 30 + len(word)
+        indices = index[word.strip().lower()]
+        print("Visar %d/%d resultat." % (max_results, len(indices)))
+        for i in indices[:max_results]:
+            line = korpus[off:i:off]
+            line = line.decode("ISO-8859-1").replace('\n',' ')
+            print(line, end="\n")
+    except Exception as e:
+        print("\nNågonting gick snett!")
+        print(e)
+    
+
 def search(word, max_results):
     try:
         with Korpus(KORPUS_PATH) as korpus:
@@ -51,8 +65,15 @@ if __name__ == "__main__":
                 print("\nFel användning: ", e)
                 print(USAGE)
         else:
-            search( term1, 25 ) # return a list of max 25 results
+            with Korpus(KORPUS_PATH) as korpus:
+                with Index(korpus) as index:
+                    if not os.path.isfile(INDEX_FILENAME):
+                        print("Hittade inget index, bygger det nu.")
+                        index.build()
+                    search_index(korpus, index, word)
     else:
-        print("Den interaktiva sessionen med sökning är inte färdig än. "+\
-              "Vänligen sök efter ett ord.")
+        print("Den interaktiva sessionen med sökning är inte färdig än.")
+        print("Se användningsinstruktionerna:")
+        print(USAGE)
+
 
