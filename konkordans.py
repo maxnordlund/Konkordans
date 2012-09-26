@@ -5,15 +5,12 @@ from Korpus import Korpus
 from Index import Index
 
 KORPUS_PATH = "/info/adk12/labb1/korpus"
-
-USAGE = """Användning: 
-"konkordans.py -h | --help" för att få denna hjälptext.
-"konkordans.py -b | --build [filnamn]" för att bygga ett nytt databasindex och avsluta programmet. Byt filnamn till det du vill kalla indexet, eller kör utan för att låta det heta "index.dat".
-"konkordans.py [-n <antal resultat=25>] <sökterm>" för att få en konkordans för söktermen."""
-
 INDEX_FILENAME = "index.dat"
 
 def search_index(korpus, index, word, max_results=25):
+    if type(max_results) is not int or max_results < 1:
+        e = Exception("Antal resultat måste vara mer än noll!")
+        raise e
     try:
         off = 30 + len(word)
         indices = index[word.strip().lower()]
@@ -46,34 +43,45 @@ def search(word, max_results):
         print("\nNågonting gick snett!")
         print(e)
 
+def print_usage():
+    print("konkordans.py av Dan och Max")
+    print("Användning:")
+    print('konkordans.py [-h | --help]      visa denna hjälptext')
+    print('konkordans.py -b | --build       bygg nytt databasindex')
+    print('konkordans.py [-n ANTAL] TERM    visa konkordans för söktermen.')
+    print()
+    print('Konkordansen visar 25 resultat om inte -n ANTAL sätts.')
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        term1 = sys.argv[1]
-        if term1 in ["-b", "--build"]:
-            print("Bygger index på " + INDEX_FILENAME + "...")
-            with Korpus(KORPUS_PATH) as korpus:
-                with Index(korpus) as index:
-                    index.build()
-            print("Index färdigbyggt.")
-        elif term1 in ["-h", "--help"]:
-            print(USAGE)
-        elif term1 in ["-n"]:
-            try:
-                n, t = sys.argv[2:]
-                search(str(t), int(n))
-            except Exception as e:
-                print("\nFel användning: ", e)
-                print(USAGE)
-        else:
+    help_flags = ["-h", "--help"]
+    build_flags = ["-b", "--build"]
+    number_of_results_flag = ["-n"]
+    if len(sys.argv) == 1 or sys.argv[1] in help_flags:
+        print_usage()
+        print_usage()
+    elif sys.argv[1] in build_flags:
+        print("Bygger index på " + INDEX_FILENAME + "...")
+        with Korpus(KORPUS_PATH) as korpus:
+            with Index(korpus) as index:
+                index.build()
+        print("Index färdigbyggt.")
+    elif sys.argv[1] in number_of_results_flag:
+        try:
+            n, word = sys.argv[2:]
             with Korpus(KORPUS_PATH) as korpus:
                 with Index(korpus) as index:
                     if not os.path.isfile(INDEX_FILENAME):
                         print("Hittade inget index, bygger det nu.")
                         index.build()
-                    search_index(korpus, index, word)
-    else:
-        print("Den interaktiva sessionen med sökning är inte färdig än.")
-        print("Se användningsinstruktionerna:")
-        print(USAGE)
-
-
+                    search_index(korpus, index, word, int(n))
+        except Exception as e:
+            print("\nFel användning: ", e)
+            print_usage()
+    else: # search for the provided term
+        with Korpus(KORPUS_PATH) as korpus:
+            with Index(korpus) as index:
+                if not os.path.isfile(INDEX_FILENAME):
+                    print("Hittade inget index, bygger det nu.")
+                    index.build()
+                word = sys.argv[1]
+                search_index(korpus, index, word)
