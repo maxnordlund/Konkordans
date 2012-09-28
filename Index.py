@@ -6,7 +6,6 @@ import math
 from os import SEEK_SET
 
 ENCODING = "ISO-8859-1" # Every character is 1 byte
-STRIPPER = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
 
 # alfabet i Latin-1-ordning 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÖ"
@@ -78,6 +77,8 @@ class Index:
         line = korpus.readline()
         while line != []:
             line = line[0].translate(TRANSLATE).decode(ENCODING)
+            if not och % 15000:
+                print(line)
             for word in line.split(" "):
                 index += len(word) + 1
                 if word == "": # Don't add strange empty words

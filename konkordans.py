@@ -72,7 +72,7 @@ def main(args):
         try:
             indices = index[word]
         except Exception as e:
-            print("\nFel användning: ", e)
+            print("\nOjdå, det här gick inge bra: ", e, "\n")
             print_usage()
         else:
             offset = 30 + len(word)
