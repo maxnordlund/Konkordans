@@ -6,42 +6,25 @@ from Index import Index
 
 KORPUS_PATH = "/info/adk12/labb1/korpus"
 INDEX_FILENAME = "index.dat"
+ENCODING = "ISO-8859-1"
 
-def search_index(korpus, index, word, max_results=25):
-    if type(max_results) is not int or max_results < 1:
-        e = Exception("Antal resultat måste vara mer än noll!")
-        raise e
-    try:
-        off = 30 + len(word)
-        indices = index[word.strip().lower()]
-        print("Visar %d/%d resultat." % (max_results, len(indices)))
-        for i in indices[:max_results]:
-            line = korpus[off:i:off]
-            line = line.decode("ISO-8859-1").replace('\n',' ')
-            print(line, end="\n")
-    except Exception as e:
-        print("\nNågonting gick snett!")
-        print(e)
+korpus = None
+
+def print_results(indices, length, offset):
+    print("Hittade %d resultat." % len(indices))
+    if len(indices) < 25:
+        length = 25
+    elif length == None:
+        choice = input("Hur många resultat vill du visa: ")
+        if choice.isdigit():
+            length = min(int(choice), len(indices))
+        else:
+            return
     
-
-def search(word, max_results):
-    try:
-        with Korpus(KORPUS_PATH) as korpus:
-            with Index(korpus) as index:
-                if not os.path.isfile(INDEX_FILENAME):
-                    print("Hittade inget index, bygger det nu.")
-                    index.build()
-
-                off = 30 + len(word)
-                indices = index[word.strip().lower()]
-                print("Visar %d/%d resultat." % (max_results, len(indices)))
-                for i in indices[:max_results]:
-                    line = korpus[off:i:off]
-                    line = line.decode("ISO-8859-1").replace('\n',' ')
-                    print(line, end="\n")
-    except Exception as e:
-        print("\nNågonting gick snett!")
-        print(e)
+    for i in indices[:length]:
+        line = korpus[offset:i:offset]
+        line = line.decode(ENCODING).replace('\n',' ')
+        print(line, end="\n")
 
 def print_usage():
     print("konkordans.py av Dan och Max")
@@ -52,36 +35,47 @@ def print_usage():
     print()
     print('Konkordansen visar 25 resultat om inte -n ANTAL sätts.')
 
-if __name__ == "__main__":
+def main(args):
     help_flags = ["-h", "--help"]
     build_flags = ["-b", "--build"]
-    number_of_results_flag = ["-n"]
-    if len(sys.argv) == 1 or sys.argv[1] in help_flags:
+    n_flag = ["-n"]
+    
+    def flag_set(flags):
+        return any([flag in args for flag in flags])
+    
+    if len(args) == 1 or flag_set(help_flags):
         print_usage()
-        print_usage()
-    elif sys.argv[1] in build_flags:
-        print("Bygger index på " + INDEX_FILENAME + "...")
-        with Korpus(KORPUS_PATH) as korpus:
-            with Index(korpus) as index:
+        return
+        
+    building = (flag_set(build_flags) or not os.path.isfile(INDEX_FILENAME))
+    
+    n = None
+    word = args[-1]
+    if flag_set(n_flag):
+        param = args[args.index("-n") + 1]
+        if not param.isdigit() or int(param) < 0:
+            print("Fel parameter till -n: ", param)
+            return
+        else:
+            n = int(param)
+    
+    with Korpus(KORPUS_PATH) as korpus:
+        with Index(korpus) as index:
+            if building:
+                print("Bygger index.")
                 index.build()
-        print("Index färdigbyggt.")
-    elif sys.argv[1] in number_of_results_flag:
-        try:
-            n, word = sys.argv[2:]
-            with Korpus(KORPUS_PATH) as korpus:
-                with Index(korpus) as index:
-                    if not os.path.isfile(INDEX_FILENAME):
-                        print("Hittade inget index, bygger det nu.")
-                        index.build()
-                    search_index(korpus, index, word, int(n))
-        except Exception as e:
-            print("\nFel användning: ", e)
-            print_usage()
-    else: # search for the provided term
-        with Korpus(KORPUS_PATH) as korpus:
-            with Index(korpus) as index:
-                if not os.path.isfile(INDEX_FILENAME):
-                    print("Hittade inget index, bygger det nu.")
-                    index.build()
-                word = sys.argv[1]
-                search_index(korpus, index, word)
+                print("Index färdigbyggt.")
+                if word in build_flags:
+                    return
+            try:
+                indices = index[word]
+            except Exception as e:
+                print("\nFel användning: ", e)
+                print_usage()
+            else:
+                offset = 30 + len(word)
+                print_results(indices, n, offset)
+
+
+if __name__ == "__main__":
+    main(sys.argv)

@@ -2,16 +2,68 @@
 
 import struct
 import Links, Hash
+import math
 from os import SEEK_SET
 
 ENCODING = "ISO-8859-1" # Every character is 1 byte
 STRIPPER = "\"\n\t!%&'()*+,-./0123456789:;=?_€§¤©®·°[]$<>@´`"
 
+# alfabet i Latin-1-ordning 
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÖ"
+
+def makeTable():
+    a = ord('a')
+    A = ord('A')
+    till = bytearray(' ' * 256, ENCODING)
+    från = bytearray(range(256))
+    
+    for s in ALPHABET:
+        ch = ord(s) + a - A
+        till[ord(s)] = till[ch] = ch
+
+    # Nedan följer speciallösning för att klara accenterade tecken
+    
+    for ch in range(224, 227+1): # a med accent (utillm å och ä) 
+        till[ch +  - a + A] = till[ch] = a
+    
+    ch = 230 # ae till ä 
+    till[ch +  - a + A] = till[ch] = ord('ä')
+    
+    ch = 231 # c med cedilj till c
+    till[ch +  - a + A] = till[ch] = ord('c')
+    
+    for ch in range(232, 235+1): # e med accent (även é) 
+        till[ch +  - a + A] = till[ch] = ord('e')
+        
+    for ch in range(236, 239+1): # i med accent 
+        till[ch +  - a + A] = till[ch] = ord('i')
+        
+    ch = 241 # n med ~ rill n 
+    till[ch +  - a + A] = till[ch] = ord('n')
+    
+    for ch in range(242, 245+1): # o med accent (förutillm ö) 
+        till[ch +  - a + A] = till[ch] = ord('o')
+        
+    ch = 248 # o genomskuret till ö 
+    till[ch +  - a + A] = till[ch] = ord('ö') 
+    
+    for ch in range(249, 252+1): # u med accent 
+        till[ch +  - a + A] = till[ch] = ord('u')
+        
+    ch = 253 # y med accent 
+    till[ch +  - a + A] = till[ch] = ord('y')
+    ch = 255
+    till[ch +  - a + A] = till[ch] = ord('y')
+    
+    return bytes.maketrans(från, till)
+
+TRANSLATE = makeTable()
+
 class Index:
     """En klass som pratar med indexfilen"""
     def __init__(self, korpus, index_path="index.dat", link_path="links.dat"):
-        self.chunk_size   = 0
-        self.word_len = 0
+        self.chunk_size  = 0
+        self.word_len    = 0
         self._korpus     = korpus
         self._index_path = index_path
         self._link_path  = link_path
@@ -20,7 +72,7 @@ class Index:
         self._index      = None # File containing the main Index
     
     def __enter__(self):
-        #self._index = open(self._index_path, mode="wb")#, encoding=ENCODING)
+        #self._index = open(self._index_path, mode="r+b")#, encoding=ENCODING)
         #self._index.__enter__()
         return self
     
@@ -36,10 +88,7 @@ class Index:
             longest_word = 0
             line = f.readlines(1)
             while line != []:
-                line = line[0].decode(ENCODING).lower()
-                for c in line:
-                    if c not in "abcdefghijklmnopqrstuvwxyzåäö ":
-                        line = line.replace(c, " ")
+                line = line[0].translate(TRANSLATE).decode(ENCODING)
                 for word in line.split(" "):
                     index += len(word) + 1
                     if word == "": # Don't add strange empty words
@@ -65,8 +114,7 @@ class Index:
         print("Läst alla ord..")
 
         self.word_len = word_len
-
-
+        
         # Build the word Links index file
         links_words = [] 
         with open(self._link_path,  mode="wb") as f:
@@ -123,29 +171,37 @@ class Index:
             return Links.Links(f).get(offset, length)
 
     def binary_search(self, key, low, high):
-        self.format_string = str(self.word_len) + "sII"
-        i = 0       # Sentinel against infinite loops
-        mid = low   # Sentinel in case low == high
-        while low < high and i < 12:
-            i += 1
-            mid = int((high + low)/2)
-            mid = mid - (mid % self.chunk_size)
-
-            # read chunk
-            self._index.seek(mid+4, SEEK_SET) # +4 from header size
+        def read_chunk(start):
+            start = start - (start % self.chunk_size)
+            self._index.seek(start+4, SEEK_SET) # +4 from header size
             data = self._index.read(self.chunk_size)
             word, offset, length = struct.unpack(self.format_string, data)
             word = word.decode(ENCODING).strip()
+            return word, offset, length
+        
+        if high == low: # Sentinel in case low == high
+            _, offset, length = read_chunk(high)
+            return offset, length
+        
+        i = 0       # Sentinel against infinite loops
+        ordo = math.log(high-low,2) + 1
+        while low < high and i < ordo:
+            i += 1
+            mid = int((high + low)/2)
 
+            word, offset, length = read_chunk(mid)
+            
             if word < key:
                 low = mid
                 #low  = mid + self.chunk_size
             elif word > key:
                 high = mid
                 #high = mid - self.chunk_size
-            else:
+            else: # word == key
                 break # Found it!
+        else:
+            raise Exception("Ordet finns inte i indexet.", key)
 
         return offset, length
 
-        
+
