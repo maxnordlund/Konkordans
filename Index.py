@@ -61,56 +61,45 @@ TRANSLATE = makeTable()
 
 class Index:
     """En klass som pratar med indexfilen"""
-    def __init__(self, korpus, index_path="index.dat", link_path="links.dat"):
+    def __init__(self, index_path="index.dat", link_path="links.dat"):
         self.chunk_size  = 0
         self.word_len    = 0
-        self._korpus     = korpus
         self._index_path = index_path
         self._link_path  = link_path
         self._hash       = None # Handler for the Hash index
         self._links      = None # Handler for the Links index
         self._index      = None # File containing the main Index
     
-    def __enter__(self):
-        #self._index = open(self._index_path, mode="r+b")#, encoding=ENCODING)
-        #self._index.__enter__()
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._index:
-            return self._index.__exit__(exc_type, exc_val, exc_tb)
-    
-    def parse_korpus(self, filename):
+    def parse_korpus(self, korpus):
         """Returns a list of (hash, string, indices)-tuples."""
-        with open(filename, "rb") as f:
-            words   = {}
-            index = 0
-            longest_word = 0
-            line = f.readlines(1)
-            while line != []:
-                line = line[0].translate(TRANSLATE).decode(ENCODING)
-                for word in line.split(" "):
-                    index += len(word) + 1
-                    if word == "": # Don't add strange empty words
-                        continue
-                    elif word not in words:
-                        words[word] = [index]
-                        longest_word = max(longest_word, len(word))
-                    else:
-                        words[word].append(index)
-                index = f.tell()
-                line = f.readlines(1)
-            
-            lazy = Hash.lazy_hash
-            word_list = [(lazy(w), w, words[w]) for w in words]
-            word_list = sorted(word_list, key=lambda t: t[1])
-            word_list = sorted(word_list, key=lambda t: t[0])
+        words        = {}
+        index        = 0
+        longest_word = 0
+        line = korpus.readline()
+        while line != []:
+            line = line[0].translate(TRANSLATE).decode(ENCODING)
+            for word in line.split(" "):
+                index += len(word) + 1
+                if word == "": # Don't add strange empty words
+                    continue
+                elif word not in words:
+                    words[word] = [index]
+                    longest_word = max(longest_word, len(word))
+                else:
+                    words[word].append(index)
+            index = korpus.tell()
+            line = korpus.readline()
+        
+        lazy = Hash.lazy_hash
+        word_list = [(lazy(w), w, words[w]) for w in words]
+        word_list = sorted(word_list, key=lambda t: t[1])
+        word_list = sorted(word_list, key=lambda t: t[0])
 
-            return word_list, longest_word
+        return word_list, longest_word
 
-    def build(self):
+    def build(self, korpus):
         # Reading all words from our korpus
-        words, word_len = self.parse_korpus("/info/adk12/labb1/korpus")
+        words, word_len = self.parse_korpus(korpus)
         print("Läst alla ord..")
 
         self.word_len = word_len

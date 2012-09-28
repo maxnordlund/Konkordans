@@ -36,6 +36,8 @@ def print_usage():
     print('Konkordansen visar 25 resultat om inte -n ANTAL sätts.')
 
 def main(args):
+    global korpus
+    
     help_flags = ["-h", "--help"]
     build_flags = ["-b", "--build"]
     n_flag = ["-n"]
@@ -60,21 +62,21 @@ def main(args):
             n = int(param)
     
     with Korpus(KORPUS_PATH) as korpus:
-        with Index(korpus) as index:
-            if building:
-                print("Bygger index.")
-                index.build()
-                print("Index färdigbyggt.")
-                if word in build_flags:
-                    return
-            try:
-                indices = index[word]
-            except Exception as e:
-                print("\nFel användning: ", e)
-                print_usage()
-            else:
-                offset = 30 + len(word)
-                print_results(indices, n, offset)
+        index = Index()
+        if building:
+            print("Bygger index.")
+            index.build(korpus)
+            print("Index färdigbyggt.")
+            if word in build_flags:
+                return
+        try:
+            indices = index[word]
+        except Exception as e:
+            print("\nFel användning: ", e)
+            print_usage()
+        else:
+            offset = 30 + len(word)
+            print_results(indices, n, offset)
 
 
 if __name__ == "__main__":

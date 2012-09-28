@@ -9,15 +9,18 @@ class Korpus:
         self._path = path
         self._len = None
     
+    def tell(self):
+        return self._fil.tell()
+    
+    def readline(self):
+        return self._fil.readlines(1)
+    
     def __enter__(self):
         self._fil = open(self._path, "rb").__enter__() # Options?
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self._fil.__exit__(exc_type, exc_val, exc_tb)
-    
-    def tell(self):
-        return self._fil.tell()
         
     def __iter__(self):
         return self._fil.__iter__()
